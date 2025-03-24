@@ -1,4 +1,4 @@
-class Threads extends Thread {
+class Threads implements Runnable{
 
 int threadNum;
 
@@ -8,7 +8,7 @@ int threadNum;
 
      }
     
-        @Override
+    @Override
     public void run(){
 
         for(int i = 1; i <=5; i++){

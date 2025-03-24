@@ -4,7 +4,7 @@ public class Multithreading {
 
         for(int i = 1; i <= 5; i++){
 
-            Threads thread = new Threads(i);
+            Thread thread = new Thread(new Threads(i));
 
             thread.start();
 
