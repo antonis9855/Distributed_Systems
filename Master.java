@@ -32,4 +32,9 @@ public class Master {
             System.out.println("Error: " + e.getMessage());
         }
     }
+
+    public String MapReduce(){
+
+    }
+
 }
