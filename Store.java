@@ -1,3 +1,4 @@
+import  java.util.LinkedList;
 public class Store {
     String name;
     int latitude;
@@ -6,6 +7,7 @@ public class Store {
     int stars;
     int votes;
     String logo;
+    LinkedList<Product> products;
 
     public Store(String name, int latitude, int longitude, String category, int stars, int votes, String logo) {
         this.name = name;
@@ -71,6 +73,10 @@ public class Store {
 
     public void setLogo(String logo) {
         this.logo = logo;
+    }
+
+    public void addProduct(Product product){
+        products.add(product);
     }
 
     public void to_json(String file_name){
