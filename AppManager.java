@@ -1,5 +1,5 @@
 import java.util.Scanner;
-public class CosnoleAppManager {
+public class AppManager {
     public static  void main(String[] main){
         Scanner scanner = new Scanner(System.in);
 
@@ -14,11 +14,14 @@ public class CosnoleAppManager {
 
                 String input=scanner.nextLine();
 
-            
+                String Command = "";
                 switch (input){
                         case "1":
 
-                            System.out.println();
+                            System.out.println("Enter store data");
+                            String storeData = scanner.nextLine();
+                            command = "Add_Store " + storeData;
+
 
                         case "2":
 
@@ -29,9 +32,16 @@ public class CosnoleAppManager {
                         case "5":
                             break;
 
+                sendCommandtoMaster(Command);
+
                     
 
-                }
+            }
+
+            private static void sendCommandtoMaster(String command){
+
+                
+            }
 
 
 

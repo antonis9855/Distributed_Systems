@@ -33,8 +33,8 @@ public class Master {
         }
     }
 
-    public String MapReduce(){
+    
 
     }
 
-}
+
