@@ -46,24 +46,59 @@ public class AppManager {
                         System.out.println("Store list is empty. Please add a store first");
                     }   
                     
-                    System.out.println(StoreList2);
-                    System.out.println("Enter product details:");
-                    String productData = scanner.nextLine();
-                    command = "ADD_PRODUCT " + productData;
+                    System.out.println("Please select a store to add product " + StoreList2);
+                    String StoreSelected2 = scanner.nextLine();
+                    System.out.println("Enter product details as a JSON path: ");
+                    String filePath2 = scanner.nextLine();
+                    String productData2 = readFileContent(filePath2);
+                    if (productData2 != null){
+
+                        command = "ADD_PRODUCT " + StoreSelected2 + " " + productData2;
+                    } else {
+                        System.out.println("Could not read the file. Please try again.");
+                        continue;
+                    }
                     break;
+
 
                 case "3":
-                    System.out.println("Enter product details to remove:");
-                    String removeProductData = scanner.nextLine();
-                    command = "REMOVE_PRODUCT " + removeProductData;
+
+                    String StoreList3 = getStoresList();
+                    if(StoreList3 == null){
+
+                        System.out.println("Store list is empty. Please add a store first");
+                    }
+
+                    String ProductList3 = getProductList();
+                    if(ProductList3 == null){
+
+                        System.out.println("Product list is empty. Please add a product first");
+
+                    }            
+
+                    System.out.println("Please select a store to remove product " + StoreList3);
+                    String StoreSelected3 = scanner.nextLine();
+                    System.out.println("Please select a product to remove " + ProductList3);
+                    String ProductSelected3 = scanner.nextLine();
+                    command = "REMOVE_PRODUCT " + StoreSelected3 + " " + ProductSelected3;
+                    
                     break;
 
+
                 case "4":
-                    System.out.println("Enter store name for total sales:");
+
+                    String StoreList4 = getStoresList();
+                    if(StoreList4 == null){
+
+                        System.out.println("Store list is empty. Please add a store first");
+                    }
+
+                    System.out.println("Enter store name for total sales " + StoreList4);
                     String storeName = scanner.nextLine();
                     command = "DISPLAY_DATA " + storeName;
                     break;
 
+                    
                 case "0":
                     System.out.print("Exiting");
                     for (int i = 0; i < 5; i++) {
