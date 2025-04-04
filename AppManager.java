@@ -47,13 +47,13 @@ public class AppManager {
                     }   
                     
                     System.out.println(StoreList2);
-                    System.out.println("Enter product details (storeName productName price availableAmount):");
+                    System.out.println("Enter product details:");
                     String productData = scanner.nextLine();
                     command = "ADD_PRODUCT " + productData;
                     break;
 
                 case "3":
-                    System.out.println("Enter product details to remove (storeName productName):");
+                    System.out.println("Enter product details to remove:");
                     String removeProductData = scanner.nextLine();
                     command = "REMOVE_PRODUCT " + removeProductData;
                     break;
@@ -88,6 +88,8 @@ public class AppManager {
         }
     }
 
+
+
     private static String readFileContent(String filePath) {
         try {
             
@@ -98,12 +100,53 @@ public class AppManager {
         }
     }
 
+
+
     private static String getStoresList(){
 
         String command = "Get_Stores_List";
-        try( Socket socket = new Socket(Master_IP, Master_PORT);
-        
+        try(Socket socket = new Socket(Master_IP, Master_PORT);
+            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
+
+
+            out.println(command);
+            String response = in.readLine();
+            System.out.println("Stores to choose: " + response);
+            return response;
+        }   
+            catch (IOException e){
+
+                System.out.println("Error connecting to Master: " + e.getMessage());
+                return null;
+            }
+
     }
+
+
+    private static String getProductList(){
+
+        String command = "Get_Product_List";
+        try(Socket socket = new Socket(Master_IP, Master_PORT);
+            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
+
+            out.println(command);
+            String response = in.readLine();
+            System.out.println("Products to choose: " + response);
+            return response;
+        
+        }
+
+            catch (IOException e){
+
+                System.out.println("Error connecting to Master: " + e.getMessage());
+                return null;
+            }
+    } 
+    
+
+
 
     private static void sendCommandtoMaster(String command) {
         try (Socket socket = new Socket(Master_IP, Master_PORT);
