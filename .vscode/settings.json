@@ -4,5 +4,6 @@
     ],
     "java.project.referencedLibraries": [
         "c:\\Users\\super\\Downloads\\katanemimena_git\\lib\\json-20250107-javadoc.jar"
-    ]
+    ],
+    "java.debug.settings.onBuildFailureProceed": true
 }

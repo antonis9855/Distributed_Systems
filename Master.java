@@ -6,14 +6,10 @@ public class Master {
 
     private static final String[] WORKER_IPS = {"127.0.0.1", "127.0.0.1", "127.0.0.1"};
     private static final int WORKER_PORT = 6000;
-    private static int currentWorker = 0;
 
-   
     public static String selectWorker(String storeName) {
-       
         int WorkerIndex = Math.abs(storeName.hashCode()) % WORKER_IPS.length;
-        String workerIP = WORKER_IPS[WorkerIndex];
-        return workerIP;
+        return WORKER_IPS[WorkerIndex];
     }
 
     public static int getWorkerPort() {
@@ -34,9 +30,6 @@ public class Master {
     }
 }
 
-
-
-
 class WorkerStarter extends Thread {
     private Socket clientSocket;
 
@@ -50,24 +43,25 @@ class WorkerStarter extends Thread {
             BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true)
         ) {
-            
             String command = in.readLine();
             System.out.println("Received command from Manager: " + command);
             out.println("Acknowledged: " + command);
 
-            
-            String workerIP = Master.selectWorker(command);
+            String[] parts = command.split(" ", 2);
+            String action = parts[0];
+            String data = parts.length > 1 ? parts[1] : "";
+
+            String storeName = extractStoreName(data);
+            String workerIP = Master.selectWorker(storeName);
             int workerPort = Master.getWorkerPort();
 
-           
             try (Socket workerSocket = new Socket(workerIP, workerPort);
                  BufferedReader workerIn = new BufferedReader(new InputStreamReader(workerSocket.getInputStream()));
                  PrintWriter workerOut = new PrintWriter(workerSocket.getOutputStream(), true)) {
-                 
+
                 workerOut.println(command);
-                
+
                 String response = workerIn.readLine();
-                
                 out.println(response);
             } catch (IOException e) {
                 System.out.println("Error connecting to worker " + workerIP + ": " + e.getMessage());
@@ -81,6 +75,18 @@ class WorkerStarter extends Thread {
             } catch (IOException e) {
                 System.out.println("Error closing client socket: " + e.getMessage());
             }
+        }
+    }
+
+    private String extractStoreName(String json) {
+        try {
+            int index = json.indexOf("\"StoreName\"");
+            if (index == -1) return "default";
+            int start = json.indexOf("\"", index + 12) + 1;
+            int end = json.indexOf("\"", start);
+            return json.substring(start, end);
+        } catch (Exception e) {
+            return "default";
         }
     }
 }
