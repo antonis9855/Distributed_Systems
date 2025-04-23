@@ -1,3 +1,4 @@
+import java.net.UnknownHostException;
 import java.util.Scanner;
 import java.io.*;
 import java.net.Socket;
@@ -20,6 +21,7 @@ public class AppManager {
             System.out.println("2. Add product");
             System.out.println("3. Remove product");
             System.out.println("4. Total sales per product");
+            System.out.println("5. Total sales per product category");
             System.out.println("0. Exit");
 
             String input = scanner.nextLine();
@@ -97,6 +99,39 @@ public class AppManager {
                     String storeName = scanner.nextLine();
                     command = "DISPLAY_DATA " + storeName;
                     break;
+
+
+                case "5":
+
+                    String foodCategoryList = getFoodCategoriesList();
+                    if(foodCategoryList == null){
+                        System.out.println("Category list is empty. Please add a food category first");
+                    }
+
+                    System.out.println("Food Category: " + foodCategoryList);
+                    String foodCategoryName = scanner.nextLine();
+                    command = "DISPLAY_FOOD_CATEGORY " + categoryName;
+                    break;
+
+
+                case "6":
+                    String productCategoryList = getProductCategoryList();
+
+                    if(productCategoryList == null){
+                        System.out.println("Product list is empty. Please add a product category fist ");
+
+                    }
+
+                    System.out.println("Product Category:" + productCategoryList);
+                    String productCategoryName = scanner.nextLine();
+                    command = "DISPLAY_PRODUCT_CATEGORY" + productCategoryName;
+                    break;
+
+
+
+
+
+
 
                     
                 case "0":
@@ -178,7 +213,45 @@ public class AppManager {
                 System.out.println("Error connecting to Master: " + e.getMessage());
                 return null;
             }
-    } 
+    }
+
+
+    private static String getFoodCategoriesList(){
+        String command = "Get_Food_Category_List";
+        try(Socket socket = new Socket(Master_IP,Master_PORT);
+            PrintWriter out = new PrintWriter(socket.getOutputStream(),true);
+            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))){
+
+            out.println(command);
+            String response = in.readLine();
+            System.out.println("Food Categories to choose: " + response);
+            return response;
+
+        }
+         catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+
+
+    private static String getProductCategoryList(){
+        String command = "Get_Product_Category_List";
+        try(Socket socket = new Socket(Master_IP,Master_PORT);
+            PrintWriter out = new PrintWriter(socket.getOutputStream(),true);
+            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))){
+
+            out.println(command);
+            String response = in.readLine();
+            System.out.println("Product Categories to choose: " + response);
+            return  response;
+
+        }
+        catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+    }
     
 
 

@@ -83,4 +83,75 @@ public class Worker {
         }
     }
 
-  }
+
+
+
+
+
+
+}
+
+class Shop{
+    String name;
+    Map<String,Product> items = new HashMap<>();
+    double latitude;
+    double longitude;
+    String foodCategory;
+    int stars;
+    int noOfVotes;
+    String storeLogo;
+    double totalSales = 0;
+
+    public Shop(String name, Map<String, Product> items, double latitude, double longitude, String foodCategory, int stars, int noOfVotes, String storeLogo) {
+        this.name = name;
+        this.items = items;
+        this.latitude = latitude;
+        this.longitude = longitude;
+        this.foodCategory = foodCategory;
+        this.stars = stars;
+        this.noOfVotes = noOfVotes;
+        this.storeLogo = storeLogo;
+    }
+
+    JSONObject.toJson(){
+        JSONObject j = new JSONObject();
+    }
+
+    j.put("StoreName: " , this.name);
+    j.put("Latitude: " , this.latitude);
+    j.put("Longitude: " , this.longitude);
+    j.put("FoodCategory: " , this.foodCategory);
+    j.put("Stars: " , this.stars);
+    j.put("NoOfVotes: " , this.noOfVotes);
+    j.put("StoreLogo: " , this.storeLogo);
+
+
+
+
+
+
+
+
+
+
+
+
+
+}
+
+
+
+
+
+
+
+class Product{
+    String name;
+    String type;
+    int amount;
+    double price;
+
+
+
+}
+
