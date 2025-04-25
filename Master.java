@@ -1,92 +1,142 @@
 import java.io.*;
 import java.net.*;
+import org.json.*;
 
 public class Master {
-    private static final int PORT = 5000;
+    static int masterPort = 5000;
+    static String[] workerHosts = {"127.0.0.1","127.0.0.1","127.0.0.1"};
+    static int workerBasePort = 6000;
 
-    private static final String[] WORKER_IPS = {"127.0.0.1", "127.0.0.1", "127.0.0.1"};
-    private static final int WORKER_PORT = 6000;
-
-    public static String selectWorker(String storeName) {
-        int WorkerIndex = Math.abs(storeName.hashCode()) % WORKER_IPS.length;
-        return WORKER_IPS[WorkerIndex];
-    }
-
-    public static int getWorkerPort() {
-        return WORKER_PORT;
-    }
-
-    public static void main(String[] args) {
-        try (ServerSocket serverSocket = new ServerSocket(PORT, 10, InetAddress.getByName("0.0.0.0"))) {
-            System.out.println("Master started on port " + PORT);
-            while (true) {
-                Socket clientSocket = serverSocket.accept();
-                System.out.println("Client connected: " + clientSocket.getInetAddress());
-                new WorkerStarter(clientSocket).start();
+    public static void main(String[] args){
+        try(ServerSocket serverSocket = new ServerSocket(masterPort)){
+            System.out.println("Master started on port " + masterPort);
+            while(true){
+                Socket managerSocket = serverSocket.accept();
+                new Thread(new ManagerHandler(managerSocket)).start();
             }
-        } catch (IOException e) {
-            System.out.println("Error in Master: " + e.getMessage());
+        } catch(Exception e){
+            e.printStackTrace();
         }
     }
 }
 
-class WorkerStarter extends Thread {
-    private Socket clientSocket;
-
-    public WorkerStarter(Socket socket) {
-        this.clientSocket = socket;
+class ManagerHandler implements Runnable {
+    private Socket managerSocket;
+    ManagerHandler(Socket socket){
+        this.managerSocket = socket;
     }
 
     @Override
-    public void run() {
+    public void run(){
         try (
-            BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-            PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true)
+            BufferedReader reader = new BufferedReader(
+                new InputStreamReader(managerSocket.getInputStream()));
+            PrintWriter writer = new PrintWriter(
+                managerSocket.getOutputStream(), true)
         ) {
-            String command = in.readLine();
-            System.out.println("Received command from Manager: " + command);
-            out.println("Acknowledged: " + command);
+            String request = reader.readLine();
+            if(request == null) return;
+            String[] parts = request.split(" ",2);
+            String command = parts[0];
+            String payload = parts.length>1 ? parts[1].trim() : "";
 
-            String[] parts = command.split(" ", 2);
-            String action = parts[0];
-            String data = parts.length > 1 ? parts[1] : "";
+            if (command.equals("SEARCH")) {
+                
+                String resp = handleSearch(request);
+                writer.println(resp);
 
-            String storeName = extractStoreName(data);
-            String workerIP = Master.selectWorker(storeName);
-            int workerPort = Master.getWorkerPort();
+            } else if (command.equals("TOTAL_SALES_PER_PRODUCT")
+                    || command.equals("TOTAL_SALES_BY_STORE_TYPE")
+                    || command.equals("TOTAL_SALES_BY_PRODUCT_CATEGORY")) {
+                
+                String resp = handleAggregate(command, payload);
+                writer.println(resp);
 
-            try (Socket workerSocket = new Socket(workerIP, workerPort);
-                 BufferedReader workerIn = new BufferedReader(new InputStreamReader(workerSocket.getInputStream()));
-                 PrintWriter workerOut = new PrintWriter(workerSocket.getOutputStream(), true)) {
+            } else if (command.equals("ADD_SHOP")
+                    || command.equals("ADD_ITEM")
+                    || command.equals("REMOVE_ITEM")
+                    || command.equals("RESTOCK")
+                    || command.equals("BUY")) {
+               
+                String storeName;
+                if (command.equals("REMOVE_ITEM")) {
+                   
+                    storeName = payload.split("\\|", 2)[0];
+                } else {
+                    storeName = new JSONObject(payload).getString("StoreName");
+                }
+                int idx  = Math.abs(storeName.hashCode()) % Master.workerHosts.length;
+                String host = Master.workerHosts[idx];
+                int    port = Master.workerBasePort + idx;
 
-                workerOut.println(command);
+                String resp = talk(host, port, request);
+                writer.println(resp != null ? resp : "ERROR");
 
-                String response = workerIn.readLine();
-                out.println(response);
-            } catch (IOException e) {
-                System.out.println("Error connecting to worker " + workerIP + ": " + e.getMessage());
-                out.println("Error connecting to worker node");
+            } else {
+                writer.println("ERROR Unknown command");
             }
-        } catch (IOException e) {
-            System.out.println("Error in WorkerThread: " + e.getMessage());
+        } catch(Exception e){
+            e.printStackTrace();
         } finally {
-            try {
-                clientSocket.close();
-            } catch (IOException e) {
-                System.out.println("Error closing client socket: " + e.getMessage());
-            }
+            try { managerSocket.close(); }
+            catch(IOException ignored){}
         }
     }
 
-    private String extractStoreName(String json) {
-        try {
-            int index = json.indexOf("\"StoreName\"");
-            if (index == -1) return "default";
-            int start = json.indexOf("\"", index + 12) + 1;
-            int end = json.indexOf("\"", start);
-            return json.substring(start, end);
-        } catch (Exception e) {
-            return "default";
+    private String handleSearch(String request){
+        JSONArray merged = new JSONArray();
+        for(int i=0; i<Master.workerHosts.length; i++){
+            String resp = talk(
+                Master.workerHosts[i],
+                Master.workerBasePort + i,
+                request
+            );
+            if(resp != null){
+                JSONArray arr = new JSONArray(resp);
+                for(int j=0; j<arr.length(); j++){
+                    merged.put(arr.get(j));
+                }
+            }
+        }
+        return merged.toString();
+    }
+
+    private String handleAggregate(String command, String payload){
+        JSONObject merged = new JSONObject();
+        double totalSum = 0;
+        for(int i=0; i<Master.workerHosts.length; i++){
+            String line = command + (payload.isEmpty() ? "" : " " + payload);
+            String resp = talk(
+                Master.workerHosts[i],
+                Master.workerBasePort + i,
+                line
+            );
+            if(resp == null) continue;
+            JSONObject obj = new JSONObject(resp);
+            for(String key : obj.keySet()){
+                double val = obj.getDouble(key);
+                if(key.equals("total")) totalSum += val;
+                else merged.put(key, merged.optDouble(key,0)+val);
+            }
+        }
+        if(command.equals("TOTAL_SALES_BY_STORE_TYPE")
+        || command.equals("TOTAL_SALES_BY_PRODUCT_CATEGORY")){
+            merged.put("total", totalSum);
+        }
+        return merged.toString();
+    }
+
+    private String talk(String host, int port, String msg){
+        try (
+            Socket sock = new Socket(host, port);
+            PrintWriter out = new PrintWriter(sock.getOutputStream(), true);
+            BufferedReader in = new BufferedReader(
+                new InputStreamReader(sock.getInputStream()))
+        ) {
+            out.println(msg);
+            return in.readLine();
+        } catch(IOException e){
+            return null;
         }
     }
 }

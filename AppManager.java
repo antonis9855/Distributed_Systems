@@ -1,272 +1,176 @@
-import java.net.UnknownHostException;
 import java.util.Scanner;
 import java.io.*;
-import java.net.Socket;
+import java.net.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import org.json.*;
 
 public class AppManager {
+    private static final String MASTER_IP   = "127.0.0.1";
+    private static final int    MASTER_PORT = 5000;
 
-    private static final String Master_IP = "127.0.0.1";
-    private static final int Master_PORT = 5000;
-
-    public static void main(String[] args) {
-        Scanner scanner = new Scanner(System.in);
-
+    public static void main(String[] args) throws Exception {
+        Scanner sc = new Scanner(System.in);
         while (true) {
+            System.out.println("\n=== MANAGER MENU ===");
+            System.out.println("1) Add store");
+            System.out.println("2) Add product to store");
+            System.out.println("3) Remove product from store");
+            System.out.println("4) Restock product");
+            System.out.println("5) Total sales per product");
+            System.out.println("6) Total sales by store category");
+            System.out.println("7) Total sales by product category");
+            System.out.println("0) Exit");
+            System.out.print("Choice: ");
 
-            System.out.println("=== MANAGER MENU ===\n");
-            System.err.println("Please select an option to continue or press 0 to exit");
-            System.out.println("1. Add store");
-            System.out.println("2. Add product");
-            System.out.println("3. Remove product");
-            System.out.println("4. Total sales per product");
-            System.out.println("5. Total sales per product category");
-            System.out.println("0. Exit");
+            String choice = sc.nextLine().trim();
+            String response;
 
-            String input = scanner.nextLine();
-            String command = "";
-
-            switch (input) {
+            switch (choice) {
                 case "1":
-                    System.out.println("Enter the file path for the JSON store data:");
-                    String filePath = scanner.nextLine();
-                    String storeData = readFileContent(filePath);
-                    if (storeData != null) {
-                        command = "ADD_STORE " + storeData;
-                    } else {
-                        System.out.println("Could not read the file. Please try again.");
-                        continue;
-                    }
+                    // ADD_SHOP <json>
+                    System.out.print("Path to store JSON file: ");
+                    String shopPath = sc.nextLine().trim();
+                    String shopJson = readFile(shopPath);
+                    if (shopJson == null) break;
+                    response = sendRequest("ADD_SHOP " + shopJson);
+                    System.out.println("-> " + response);
                     break;
 
                 case "2":
-
-                    String StoreList2 = getStoresList();
-                    if (StoreList2 == null){
-
-                        System.out.println("Store list is empty. Please add a store first");
-                    }   
-                    
-                    System.out.println("Please select a store to add product " + StoreList2);
-                    String StoreSelected2 = scanner.nextLine();
-                    System.out.println("Enter product details as a JSON path: ");
-                    String filePath2 = scanner.nextLine();
-                    String productData2 = readFileContent(filePath2);
-                    if (productData2 != null){
-
-                        command = "ADD_PRODUCT " + StoreSelected2 + " " + productData2;
-                    } else {
-                        System.out.println("Could not read the file. Please try again.");
-                        continue;
-                    }
+                    // ADD_ITEM <StoreName> <json>
+                    System.out.print("StoreName: ");
+                    String storeNameForAdd = sc.nextLine().trim();
+                    System.out.print("Path to product JSON file: ");
+                    String prodPath = sc.nextLine().trim();
+                    String prodJson = readFile(prodPath);
+                    if (prodJson == null) break;
+                    response = sendRequest("ADD_ITEM " 
+                                            + storeNameForAdd 
+                                            + " " + prodJson);
+                    System.out.println("-> " + response);
                     break;
-
 
                 case "3":
-
-                    String StoreList3 = getStoresList();
-                    if(StoreList3 == null){
-
-                        System.out.println("Store list is empty. Please add a store first");
-                    }
-
-                    String ProductList3 = getProductList();
-                    if(ProductList3 == null){
-
-                        System.out.println("Product list is empty. Please add a product first");
-
-                    }            
-
-                    System.out.println("Please select a store to remove product " + StoreList3);
-                    String StoreSelected3 = scanner.nextLine();
-                    System.out.println("Please select a product to remove " + ProductList3);
-                    String ProductSelected3 = scanner.nextLine();
-                    command = "REMOVE_PRODUCT " + StoreSelected3 + " " + ProductSelected3;
-                    
+                    // REMOVE_ITEM <StoreName>|<ProductName>
+                    System.out.print("StoreName: ");
+                    String storeNameForRemove = sc.nextLine().trim();
+                    System.out.print("ProductName: ");
+                    String prodToRemove = sc.nextLine().trim();
+                    // use '|' so Worker splits correctly
+                    response = sendRequest("REMOVE_ITEM " 
+                                            + storeNameForRemove 
+                                            + "|" + prodToRemove);
+                    System.out.println("-> " + response);
                     break;
-
 
                 case "4":
-
-                    String StoreList4 = getStoresList();
-                    if(StoreList4 == null){
-
-                        System.out.println("Store list is empty. Please add a store first");
-                    }
-
-                    System.out.println("Enter store name for total sales " + StoreList4);
-                    String storeName = scanner.nextLine();
-                    command = "DISPLAY_DATA " + storeName;
+                    // RESTOCK <StoreName> <ProductName> <delta>
+                    System.out.print("StoreName: ");
+                    String storeNameForRestock = sc.nextLine().trim();
+                    System.out.print("ProductName: ");
+                    String prodToRestock = sc.nextLine().trim();
+                    System.out.print("Delta amount: ");
+                    String delta = sc.nextLine().trim();
+                    response = sendRequest("RESTOCK "
+                                            + storeNameForRestock 
+                                            + " " + prodToRestock
+                                            + " " + delta);
+                    System.out.println("-> " + response);
                     break;
-
 
                 case "5":
-
-                    String foodCategoryList = getFoodCategoriesList();
-                    if(foodCategoryList == null){
-                        System.out.println("Category list is empty. Please add a food category first");
+                    // TOTAL_SALES_PER_PRODUCT
+                    response = sendRequest("TOTAL_SALES_PER_PRODUCT");
+                    JSONObject salesByProduct = new JSONObject(response);
+                    System.out.println("Sales per product:");
+                    for (String prod : salesByProduct.keySet()) {
+                        System.out.printf("  %s: %.2f%n",
+                            prod,
+                            salesByProduct.getDouble(prod));
                     }
-
-                    System.out.println("Food Category: " + foodCategoryList);
-                    String foodCategoryName = scanner.nextLine();
-                    command = "DISPLAY_FOOD_CATEGORY " + categoryName;
                     break;
-
 
                 case "6":
-                    String productCategoryList = getProductCategoryList();
-
-                    if(productCategoryList == null){
-                        System.out.println("Product list is empty. Please add a product category fist ");
-
+                    // TOTAL_SALES_BY_STORE_TYPE {"FoodCategory":...}
+                    System.out.print("FoodCategory: ");
+                    String cat = sc.nextLine().trim();
+                    JSONObject catPayload = new JSONObject()
+                                                .put("FoodCategory", cat);
+                    response = sendRequest("TOTAL_SALES_BY_STORE_TYPE " 
+                                            + catPayload.toString());
+                    JSONObject salesByStore = new JSONObject(response);
+                    System.out.println("Sales by store for category '" + cat + "':");
+                    for (String store : salesByStore.keySet()) {
+                        System.out.printf("  %s: %.2f%n",
+                            store,
+                            salesByStore.getDouble(store));
                     }
-
-                    System.out.println("Product Category:" + productCategoryList);
-                    String productCategoryName = scanner.nextLine();
-                    command = "DISPLAY_PRODUCT_CATEGORY" + productCategoryName;
                     break;
 
+                case "7":
+                    // TOTAL_SALES_BY_PRODUCT_CATEGORY {"ProductType":...}
+                    System.out.print("ProductType: ");
+                    String ptype = sc.nextLine().trim();
+                    JSONObject prodPayload = new JSONObject()
+                                                .put("ProductType", ptype);
+                    response = sendRequest("TOTAL_SALES_BY_PRODUCT_CATEGORY " 
+                                            + prodPayload.toString());
+                    JSONObject salesByProdCat = new JSONObject(response);
+                    System.out.println("Sales by store for product type '" + ptype + "':");
+                    for (String store : salesByProdCat.keySet()) {
+                        System.out.printf("  %s: %.2f%n",
+                            store,
+                            salesByProdCat.getDouble(store));
+                    }
+                    break;
 
-
-
-
-
-
-                    
                 case "0":
-                    System.out.print("Exiting");
-                    for (int i = 0; i < 5; i++) {
-                        try {
-                            Thread.sleep(500);
-                        } catch (InterruptedException e) {
-                            // ignore
-                        }
-                        System.out.print(".");
-                    }
-                    System.out.println("\nSystem off");
-                    scanner.close();
-                    System.exit(0);
-                    break;
+                    System.out.println("Exiting Manager.");
+                    sc.close();
+                    return;
 
                 default:
-                    System.out.println("Invalid Menu option: " + input);
-                    continue;
+                    System.out.println("Invalid choice. Try again.");
             }
-
-            sendCommandtoMaster(command);
         }
     }
 
-
-
-    private static String readFileContent(String filePath) {
+    private static String readFile(String path) {
         try {
+            byte[] raw = Files.readAllBytes(Paths.get(path));
+            String content = new String(raw, StandardCharsets.UTF_8);
+        
+            if (content.startsWith("\uFEFF")) {
+                content = content.substring(1);
+            }
             
-            return Files.readString(Paths.get(filePath));
+            content = content.replaceAll("\\R", "").trim();
+            
+            if (content.startsWith("[") && content.endsWith("]")) {
+                content = content.substring(1, content.length()-1).trim();
+            }
+            return content;
         } catch (IOException e) {
             System.out.println("Error reading file: " + e.getMessage());
             return null;
         }
     }
 
-
-
-    private static String getStoresList(){
-
-        String command = "Get_Stores_List";
-        try(Socket socket = new Socket(Master_IP, Master_PORT);
-            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
-
-
-            out.println(command);
-            String response = in.readLine();
-            System.out.println("Stores to choose: " + response);
-            return response;
-        }   
-            catch (IOException e){
-
-                System.out.println("Error connecting to Master: " + e.getMessage());
-                return null;
-            }
-
-    }
-
-
-    private static String getProductList(){
-
-        String command = "Get_Product_List";
-        try(Socket socket = new Socket(Master_IP, Master_PORT);
-            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
-
-            out.println(command);
-            String response = in.readLine();
-            System.out.println("Products to choose: " + response);
-            return response;
-        
-        }
-
-            catch (IOException e){
-
-                System.out.println("Error connecting to Master: " + e.getMessage());
-                return null;
-            }
-    }
-
-
-    private static String getFoodCategoriesList(){
-        String command = "Get_Food_Category_List";
-        try(Socket socket = new Socket(Master_IP,Master_PORT);
-            PrintWriter out = new PrintWriter(socket.getOutputStream(),true);
-            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))){
-
-            out.println(command);
-            String response = in.readLine();
-            System.out.println("Food Categories to choose: " + response);
-            return response;
-
-        }
-         catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
-    }
-
-
-    private static String getProductCategoryList(){
-        String command = "Get_Product_Category_List";
-        try(Socket socket = new Socket(Master_IP,Master_PORT);
-            PrintWriter out = new PrintWriter(socket.getOutputStream(),true);
-            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))){
-
-            out.println(command);
-            String response = in.readLine();
-            System.out.println("Product Categories to choose: " + response);
-            return  response;
-
-        }
-        catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
-    }
-    
-
-
-
-    private static void sendCommandtoMaster(String command) {
-        try (Socket socket = new Socket(Master_IP, Master_PORT);
-             PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
-
-            out.println(command);
-            String response = in.readLine();
-            System.out.println("Response from Master: " + response);
-
-        } catch (IOException error) {
-            System.out.println("Error connecting to Master: " + error.getMessage());
+    private static String sendRequest(String request) {
+        try (
+            Socket sock = new Socket(MASTER_IP, MASTER_PORT);
+            PrintWriter out = new PrintWriter(sock.getOutputStream(), true);
+            BufferedReader in = new BufferedReader(
+                new InputStreamReader(sock.getInputStream()))
+        ) {
+            out.println(request);
+            String line = in.readLine();
+            return line == null ? "" : line.trim();
+        } catch (IOException e) {
+            System.out.println("Error connecting to Master: " + e.getMessage());
+            return "";
         }
     }
 }
