@@ -1,53 +1,59 @@
-import java.util.Scanner;
 import java.io.*;
 import java.net.*;
+import java.util.Scanner;
 import org.json.*;
 
 public class AppClient {
-    private static final String MASTER_IP       = "127.0.0.1";
-    private static final int    MASTER_PORT     = 5000;
+    private static final String MASTER_HOST = "127.0.0.1";
+    private static final int MASTER_PORT = 5000;
     private static final double CLIENT_LATITUDE  = 37.99;
     private static final double CLIENT_LONGITUDE = 23.73;
 
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
         while (true) {
-            System.out.println("\n=== Client Menu ===");
+            System.out.println();
+            System.out.println("=== CLIENT MENU ===");
             System.out.println("1) Search shops");
             System.out.println("2) Buy products");
-            System.out.println("3) Rate a shop");
+            System.out.println("3) Rate shop");
             System.out.println("0) Exit");
             System.out.print("Choice: ");
             String choice = scanner.nextLine().trim();
-            if (choice.equals("1")) {
-                searchShops(scanner);
-            } else if (choice.equals("2")) {
-                buyProducts(scanner);
-            } else if (choice.equals("3")) {
-                rateShop(scanner);
-            } else if (choice.equals("0")) {
+            if ("0".equals(choice)) {
                 break;
-            } else {
-                System.out.println("Invalid option");
+            }
+            switch (choice) {
+                case "1":
+                    search(scanner);
+                    break;
+                case "2":
+                    buy(scanner);
+                    break;
+                case "3":
+                    rate(scanner);
+                    break;
+                default:
+                    System.out.println("Invalid choice");
             }
         }
         scanner.close();
     }
 
-    private static void searchShops(Scanner scanner) {
+    private static void search(Scanner scanner) {
         try {
             JSONObject filter = new JSONObject()
                 .put("Latitude",  CLIENT_LATITUDE)
                 .put("Longitude", CLIENT_LONGITUDE);
-            System.out.print("Food category (or leave blank): ");
+            System.out.print("Food category (or empty): ");
             filter.put("FoodCategory", scanner.nextLine().trim());
-            System.out.print("Minimum stars (1–5): ");
+            System.out.print("Minimum stars (1-5): ");
             filter.put("MinStars", Integer.parseInt(scanner.nextLine().trim()));
-            System.out.print("Number of price bands (0–3): ");
-            int bandsCount = Integer.parseInt(scanner.nextLine().trim());
+            System.out.print("Number of price bands (0-3): ");
+            int bandCount = Integer.parseInt(scanner.nextLine().trim());
             JSONArray priceBands = new JSONArray();
-            for (int i = 0; i < bandsCount; i++) {
-                System.out.print("  Band " + (i+1) + " ($, $$, $$$): ");
+            for (int i = 0; i < bandCount; i++) {
+                System.out.print("  Band " + (i + 1) + " ($, $$, $$$): ");
                 priceBands.put(scanner.nextLine().trim());
             }
             filter.put("PriceBands", priceBands);
@@ -56,47 +62,50 @@ public class AppClient {
             String response = sendRequest(request);
             JSONArray shops = new JSONArray(response);
 
-            System.out.println("\nFound " + shops.length() + " shops:");
+            System.out.println("Found " + shops.length() + " shops:");
             for (int i = 0; i < shops.length(); i++) {
                 JSONObject s = shops.getJSONObject(i);
-                System.out.printf("  %s (%s) at [%.4f, %.4f], %d stars%n",
+                System.out.printf(
+                    "  %s (%s) [%.4f, %.4f] %d stars%n",
                     s.getString("StoreName"),
                     s.getString("FoodCategory"),
                     s.getDouble("Latitude"),
                     s.getDouble("Longitude"),
-                    s.getInt("Stars"));
+                    s.getInt("Stars")
+                );
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private static void buyProducts(Scanner scanner) {
+    private static void buy(Scanner scanner) {
         try {
-            System.out.print("StoreName to buy from: ");
+            System.out.print("Store name: ");
             String storeName = scanner.nextLine().trim();
             System.out.print("Number of items: ");
             int itemCount = Integer.parseInt(scanner.nextLine().trim());
             JSONArray items = new JSONArray();
             for (int i = 0; i < itemCount; i++) {
-                System.out.print("  ProductName: ");
+                System.out.print("  Product name: ");
                 String productName = scanner.nextLine().trim();
                 System.out.print("  Quantity: ");
-                int qty = Integer.parseInt(scanner.nextLine().trim());
+                int quantity = Integer.parseInt(scanner.nextLine().trim());
                 items.put(new JSONObject()
                     .put("ProductName", productName)
-                    .put("Quantity",    qty));
+                    .put("Quantity",    quantity)
+                );
             }
-            JSONObject buyReq = new JSONObject()
+            JSONObject requestJson = new JSONObject()
                 .put("StoreName", storeName)
                 .put("Items",     items);
-            String response = sendRequest("BUY " + buyReq.toString());
+            String response = sendRequest("BUY " + requestJson);
             JSONObject result = new JSONObject(response);
 
-            System.out.println("\nPurchase status: " + result.getString("status"));
+            System.out.println("Purchase status: " + result.getString("status"));
             for (String key : result.keySet()) {
-                if (!key.equals("status")) {
-                    System.out.printf("  %s: %s%n", key, result.get(key).toString());
+                if (!"status".equals(key)) {
+                    System.out.printf("  %s: %s%n", key, result.get(key));
                 }
             }
         } catch (Exception e) {
@@ -104,33 +113,30 @@ public class AppClient {
         }
     }
 
-    private static void rateShop(Scanner scanner) {
+    private static void rate(Scanner scanner) {
         try {
-            System.out.print("StoreName to rate: ");
+            System.out.print("Store name: ");
             String storeName = scanner.nextLine().trim();
-            System.out.print("Your rating (1–5): ");
+            System.out.print("Rating (1-5): ");
             int stars = Integer.parseInt(scanner.nextLine().trim());
             if (stars < 1 || stars > 5) {
                 System.out.println("Rating must be between 1 and 5");
                 return;
             }
-            JSONObject rateReq = new JSONObject()
+            JSONObject requestJson = new JSONObject()
                 .put("StoreName", storeName)
                 .put("Stars",     stars);
-            String response = sendRequest("RATE " + rateReq.toString());
-            System.out.println("Rating response: " + response);
+            String response = sendRequest("RATE " + requestJson);
+            System.out.println("Rate response: " + response);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
     private static String sendRequest(String request) {
-        try (
-            Socket sock = new Socket(MASTER_IP, MASTER_PORT);
-            PrintWriter out = new PrintWriter(sock.getOutputStream(), true);
-            BufferedReader in = new BufferedReader(
-                new InputStreamReader(sock.getInputStream()))
-        ) {
+        try (Socket socket = new Socket(MASTER_HOST, MASTER_PORT);
+             PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+             BufferedReader in  = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
             out.println(request);
             return in.readLine();
         } catch (IOException e) {
@@ -139,4 +145,3 @@ public class AppClient {
         }
     }
 }
-//         } catch (IOException e) {

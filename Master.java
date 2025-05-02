@@ -1,142 +1,161 @@
 import java.io.*;
 import java.net.*;
+import java.util.*;
 import org.json.*;
 
 public class Master {
-    static int masterPort = 5000;
-    static String[] workerHosts = {"127.0.0.1","127.0.0.1","127.0.0.1"};
-    static int workerBasePort = 6000;
+    public static final int MASTER_PORT       = 5000;
+    public static final String[] WORKER_HOSTS = {
+        "127.0.0.1", "127.0.0.1", "127.0.0.1"
+    };
+    public static final int WORKER_BASE_PORT  = 6000;
+    public static final String REDUCER_HOST   = "127.0.0.1";
+    public static final int REDUCER_PORT      = 7000;
+    public static final int REPLICA_COUNT     = 2;
 
-    public static void main(String[] args){
-        try(ServerSocket serverSocket = new ServerSocket(masterPort)){
-            System.out.println("Master started on port " + masterPort);
-            while(true){
+    public static void main(String[] args) {
+        try (ServerSocket serverSocket = new ServerSocket(MASTER_PORT)) {
+            System.out.println("Master started on port " + MASTER_PORT);
+            while (true) {
                 Socket managerSocket = serverSocket.accept();
                 new Thread(new ManagerHandler(managerSocket)).start();
             }
-        } catch(Exception e){
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
-}
 
-class ManagerHandler implements Runnable {
-    private Socket managerSocket;
-    ManagerHandler(Socket socket){
-        this.managerSocket = socket;
-    }
+    private static class ManagerHandler implements Runnable {
+        private final Socket socket;
 
-    @Override
-    public void run(){
-        try (
-            BufferedReader reader = new BufferedReader(
-                new InputStreamReader(managerSocket.getInputStream()));
-            PrintWriter writer = new PrintWriter(
-                managerSocket.getOutputStream(), true)
-        ) {
-            String request = reader.readLine();
-            if(request == null) return;
-            String[] parts = request.split(" ",2);
-            String command = parts[0];
-            String payload = parts.length>1 ? parts[1].trim() : "";
+        ManagerHandler(Socket socket) {
+            this.socket = socket;
+        }
 
-            if (command.equals("SEARCH")) {
-                
-                String resp = handleSearch(request);
-                writer.println(resp);
+        @Override
+        public void run() {
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                 PrintWriter writer = new PrintWriter(socket.getOutputStream(), true)) {
+                String requestLine = reader.readLine();
+                if (requestLine == null) return;
 
-            } else if (command.equals("TOTAL_SALES_PER_PRODUCT")
-                    || command.equals("TOTAL_SALES_BY_STORE_TYPE")
-                    || command.equals("TOTAL_SALES_BY_PRODUCT_CATEGORY")) {
-                
-                String resp = handleAggregate(command, payload);
-                writer.println(resp);
+                String[] parts   = requestLine.split(" ", 2);
+                String  command = parts[0];
+                String  payload = parts.length > 1 ? parts[1].trim() : "";
 
-            } else if (command.equals("ADD_SHOP")
-                    || command.equals("ADD_ITEM")
-                    || command.equals("REMOVE_ITEM")
-                    || command.equals("RESTOCK")
-                    || command.equals("BUY")) {
-               
-                String storeName;
-                if (command.equals("REMOVE_ITEM")) {
-                   
-                    storeName = payload.split("\\|", 2)[0];
-                } else {
-                    storeName = new JSONObject(payload).getString("StoreName");
+                switch (command) {
+                    case "SEARCH":
+                        handleSearch(requestLine, writer);
+                        break;
+
+                    case "TOTAL_SALES_PER_PRODUCT":
+                    case "TOTAL_SALES_BY_STORE_TYPE":
+                    case "TOTAL_SALES_BY_PRODUCT_CATEGORY":
+                        handleAggregate(command, payload, writer);
+                        break;
+
+                    case "ADD_SHOP":
+                    case "ADD_ITEM":
+                    case "REMOVE_ITEM":
+                    case "RESTOCK":
+                    case "BUY":
+                        handleWrite(command, payload, writer);
+                        break;
+
+                    default:
+                        writer.println("ERROR Unknown command");
                 }
-                int idx  = Math.abs(storeName.hashCode()) % Master.workerHosts.length;
-                String host = Master.workerHosts[idx];
-                int    port = Master.workerBasePort + idx;
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+                try { socket.close(); }
+                catch (IOException ignored) {}
+            }
+        }
 
-                String resp = talk(host, port, request);
-                writer.println(resp != null ? resp : "ERROR");
+        private void handleSearch(String request, PrintWriter writer) {
+            List<String> mapResults = new ArrayList<>();
+            for (int i = 0; i < WORKER_HOSTS.length; i++) {
+                mapResults.add(sendToWorker(i, request));
+            }
+            String reduced = sendToReducer("SEARCH", mapResults);
+            writer.println(reduced);
+        }
 
+        private void handleAggregate(String command, String payload, PrintWriter writer) {
+            List<String> mapResults = new ArrayList<>();
+            for (int i = 0; i < WORKER_HOSTS.length; i++) {
+                String workerRequest = command + (payload.isEmpty() ? "" : " " + payload);
+                mapResults.add(sendToWorker(i, workerRequest));
+            }
+            String reduceCommand;
+            if ("TOTAL_SALES_PER_PRODUCT".equals(command)) {
+                reduceCommand = "AGG_PRODUCT";
+            } else if ("TOTAL_SALES_BY_STORE_TYPE".equals(command)) {
+                reduceCommand = "AGG_STORE";
             } else {
-                writer.println("ERROR Unknown command");
+                reduceCommand = "AGG_PROD";
             }
-        } catch(Exception e){
-            e.printStackTrace();
-        } finally {
-            try { managerSocket.close(); }
-            catch(IOException ignored){}
+            String reduced = sendToReducer(reduceCommand, mapResults);
+            writer.println(reduced);
         }
-    }
 
-    private String handleSearch(String request){
-        JSONArray merged = new JSONArray();
-        for(int i=0; i<Master.workerHosts.length; i++){
-            String resp = talk(
-                Master.workerHosts[i],
-                Master.workerBasePort + i,
-                request
-            );
-            if(resp != null){
-                JSONArray arr = new JSONArray(resp);
-                for(int j=0; j<arr.length(); j++){
-                    merged.put(arr.get(j));
+        private void handleWrite(String command, String payload, PrintWriter writer) {
+            try {
+                JSONObject json = new JSONObject(payload);
+                String storeName = json.getString("StoreName");
+                List<Integer> replicas = getReplicaIndices(storeName);
+                boolean ok = false;
+                for (int idx : replicas) {
+                    String response = sendToWorker(idx, command + " " + payload);
+                    if ("OK".equals(response)) {
+                        ok = true;
+                    }
                 }
+                writer.println(ok ? "OK" : "ERROR Replication failed");
+            } catch (JSONException e) {
+                writer.println("ERROR Invalid JSON");
             }
         }
-        return merged.toString();
-    }
 
-    private String handleAggregate(String command, String payload){
-        JSONObject merged = new JSONObject();
-        double totalSum = 0;
-        for(int i=0; i<Master.workerHosts.length; i++){
-            String line = command + (payload.isEmpty() ? "" : " " + payload);
-            String resp = talk(
-                Master.workerHosts[i],
-                Master.workerBasePort + i,
-                line
-            );
-            if(resp == null) continue;
-            JSONObject obj = new JSONObject(resp);
-            for(String key : obj.keySet()){
-                double val = obj.getDouble(key);
-                if(key.equals("total")) totalSum += val;
-                else merged.put(key, merged.optDouble(key,0)+val);
+        private List<Integer> getReplicaIndices(String storeName) {
+            int n = WORKER_HOSTS.length;
+            int primary = Math.abs(storeName.hashCode()) % n;
+            List<Integer> list = new ArrayList<>();
+            for (int i = 0; i < REPLICA_COUNT; i++) {
+                list.add((primary + i) % n);
+            }
+            return list;
+        }
+
+        private String sendToWorker(int index, String message) {
+            String host = WORKER_HOSTS[index];
+            int port     = WORKER_BASE_PORT + index;
+            try (Socket sock = new Socket(host, port);
+                 PrintWriter out = new PrintWriter(sock.getOutputStream(), true);
+                 BufferedReader in  = new BufferedReader(new InputStreamReader(sock.getInputStream()))) {
+                out.println(message);
+                return in.readLine();
+            } catch (IOException e) {
+                return "";
             }
         }
-        if(command.equals("TOTAL_SALES_BY_STORE_TYPE")
-        || command.equals("TOTAL_SALES_BY_PRODUCT_CATEGORY")){
-            merged.put("total", totalSum);
-        }
-        return merged.toString();
-    }
 
-    private String talk(String host, int port, String msg){
-        try (
-            Socket sock = new Socket(host, port);
-            PrintWriter out = new PrintWriter(sock.getOutputStream(), true);
-            BufferedReader in = new BufferedReader(
-                new InputStreamReader(sock.getInputStream()))
-        ) {
-            out.println(msg);
-            return in.readLine();
-        } catch(IOException e){
-            return null;
+        private String sendToReducer(String reduceCommand, List<String> parts) {
+            try (Socket sock = new Socket(REDUCER_HOST, REDUCER_PORT);
+                 PrintWriter out = new PrintWriter(sock.getOutputStream(), true);
+                 BufferedReader in  = new BufferedReader(new InputStreamReader(sock.getInputStream()))) {
+                out.println(reduceCommand);
+                out.println(parts.size());
+                for (int i = 0; i < parts.size(); i++) {
+                    String part = parts.get(i);
+                    out.println(i + " " + (part == null ? "" : part));
+                }
+                return in.readLine();
+            } catch (IOException e) {
+                e.printStackTrace();
+                return reduceCommand.equals("SEARCH") ? "[]" : "{}";
+            }
         }
     }
 }

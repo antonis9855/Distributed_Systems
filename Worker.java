@@ -5,13 +5,13 @@ import org.json.*;
 
 public class Worker {
     private final int port;
-    private final Map<String,Shop> shopMap = Collections.synchronizedMap(new HashMap<>());
+    private final Map<String, Shop> shopMap = Collections.synchronizedMap(new HashMap<>());
 
     public Worker(int port) {
         this.port = port;
     }
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) throws IOException {
         if (args.length != 1) {
             System.err.println("Usage: java Worker <port>");
             System.exit(1);
@@ -22,7 +22,7 @@ public class Worker {
 
     public void run() throws IOException {
         ServerSocket serverSocket = new ServerSocket(port);
-        System.out.println("Worker listening on port " + port);
+        System.out.println("Worker started on port " + port);
         while (true) {
             Socket clientSocket = serverSocket.accept();
             new Thread(() -> handle(clientSocket)).start();
@@ -30,81 +30,63 @@ public class Worker {
     }
 
     private void handle(Socket clientSocket) {
-        try (
-            BufferedReader reader = new BufferedReader(
-                new InputStreamReader(clientSocket.getInputStream()));
-            PrintWriter writer = new PrintWriter(
-                clientSocket.getOutputStream(), true)
-        ) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+             PrintWriter writer = new PrintWriter(clientSocket.getOutputStream(), true)) {
             String line = reader.readLine();
             if (line == null) return;
-
-            
-            System.out.println("▶ RAW LINE:   " + line);
             String[] parts = line.split(" ", 2);
             String command = parts[0];
             String payload = parts.length > 1 ? parts[1] : "";
-            System.out.println("▶ command = [" + command + "], payload = [" + payload + "]");
-
             switch (command) {
                 case "ADD_SHOP":
                     addShop(new JSONObject(payload));
                     writer.println("OK");
                     break;
-
                 case "ADD_ITEM": {
                     String[] p = payload.split(" ", 2);
                     addItem(p[0], new JSONObject(p[1]));
                     writer.println("OK");
                     break;
                 }
-
                 case "REMOVE_ITEM": {
-                    
-                    String[] p = payload.split("\\|", 2);
+                    String[] p = payload.split(" ", 2);
                     removeItem(p[0], p[1]);
                     writer.println("OK");
                     break;
                 }
-
                 case "RESTOCK": {
                     String[] p = payload.split(" ", 3);
                     restock(p[0], p[1], Integer.parseInt(p[2]));
                     writer.println("OK");
                     break;
                 }
-
                 case "SEARCH":
                     writer.println(search(new JSONObject(payload)).toString());
                     break;
-
                 case "BUY":
                     writer.println(buy(new JSONObject(payload)).toString());
                     break;
-
                 case "TOTAL_SALES_PER_PRODUCT":
                     writer.println(totalSalesPerProduct().toString());
                     break;
-
                 case "TOTAL_SALES_BY_STORE_TYPE": {
                     String category = new JSONObject(payload).getString("FoodCategory");
                     writer.println(totalSalesByStoreType(category).toString());
                     break;
                 }
-
                 case "TOTAL_SALES_BY_PRODUCT_CATEGORY": {
                     String type = new JSONObject(payload).getString("ProductType");
                     writer.println(totalSalesByProductCategory(type).toString());
                     break;
                 }
-
                 default:
                     writer.println("ERROR Unknown command");
             }
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            try { clientSocket.close(); } catch (IOException ignored) {}
+            try { clientSocket.close(); }
+            catch (IOException ignored) {}
         }
     }
 
