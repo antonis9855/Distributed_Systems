@@ -1,78 +1,85 @@
+// Reducer.java
 import java.io.*;
 import java.net.*;
 import java.util.*;
 import org.json.*;
 
 public class Reducer {
-    public static void main(String[] args) {
-        if (args.length != 1) {
-            System.err.println("Usage: java Reducer <port>");
-            System.exit(1);
-        }
-        int port = Integer.parseInt(args[0]);
-        try (ServerSocket serverSocket = new ServerSocket(port)) {
-            System.out.println("Reducer started on port " + port);
-            while (true) {
-                Socket clientSocket = serverSocket.accept();
-                new Thread(() -> handle(clientSocket)).start();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
+    static final int REDUCER_PORT = 7000;
+    private static List<JSONArray>  searchMaps    = Collections.synchronizedList(new ArrayList<>());
+    private static List<JSONObject> aggregateMaps = Collections.synchronizedList(new ArrayList<>());
+
+    public static void main(String[] args) throws Exception {
+        System.out.println("Reducer listening on port " + REDUCER_PORT);
+        ServerSocket serverSocket = new ServerSocket(REDUCER_PORT);
+        while (true) {
+            Socket sock = serverSocket.accept();
+            new Thread(() -> handle(sock)).start();
         }
     }
 
-    private static void handle(Socket socket) {
-        try (BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-             PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
-            String command = in.readLine();
-            int count     = Integer.parseInt(in.readLine().trim());
-            Map<Integer,String> mapResults = new TreeMap<>();
-            for (int i = 0; i < count; i++) {
-                String line = in.readLine();
-                int sep = line.indexOf(' ');
-                int mapId = Integer.parseInt(line.substring(0, sep));
-                String json = line.substring(sep + 1);
-                mapResults.put(mapId, json);
-            }
-            List<String> ordered = new ArrayList<>(mapResults.values());
-            String output;
-            if ("SEARCH".equals(command)) {
-                JSONArray merged = new JSONArray();
-                for (String part : ordered) {
-                    if (part.isEmpty()) continue;
-                    JSONArray arr = new JSONArray(part);
-                    for (int j = 0; j < arr.length(); j++) {
-                        merged.put(arr.get(j));
-                    }
-                }
-                output = merged.toString();
-            } else {
-                boolean includeTotal = "AGG_STORE".equals(command) || "AGG_PROD".equals(command);
-                JSONObject mergedObj = new JSONObject();
-                double totalSum = 0;
-                for (String part : ordered) {
-                    if (part.isEmpty()) continue;
-                    JSONObject obj = new JSONObject(part);
-                    for (String key : obj.keySet()) {
-                        double val = obj.getDouble(key);
-                        if ("total".equals(key)) {
-                            totalSum += val;
-                        } else {
-                            mergedObj.put(key, mergedObj.optDouble(key, 0) + val);
+    private static void handle(Socket sock) {
+        try (
+            BufferedReader in  = new BufferedReader(new InputStreamReader(sock.getInputStream()));
+            PrintWriter    out = new PrintWriter(sock.getOutputStream(), true)
+        ) {
+            String line = in.readLine();  
+            if (line == null) return;
+
+            String[] parts  = line.split(" ", 2);
+            String   cmd    = parts[0];
+            String   payload= parts.length > 1 ? parts[1] : "";
+
+            switch (cmd) {
+                case "RESET_SEARCH":
+                    searchMaps.clear();
+                    out.println("OK");
+                    break;
+
+                case "MAP_SEARCH":
+                    searchMaps.add(new JSONArray(payload));
+                    out.println("OK");
+                    break;
+
+                case "REDUCE_SEARCH": {
+                    JSONArray merged = new JSONArray();
+                    for (JSONArray arr : searchMaps) {
+                        for (int i = 0; i < arr.length(); i++) {
+                            merged.put(arr.get(i));
                         }
                     }
+                    out.println(merged.toString());
+                    break;
                 }
-                if (includeTotal) {
-                    mergedObj.put("total", totalSum);
+
+                case "RESET_AGG":
+                    aggregateMaps.clear();
+                    out.println("OK");
+                    break;
+
+                case "MAP_AGG":
+                    aggregateMaps.add(new JSONObject(payload));
+                    out.println("OK");
+                    break;
+
+                case "REDUCE_AGG": {
+                    JSONObject result = new JSONObject();
+                    for (JSONObject obj : aggregateMaps) {
+                        for (String key : obj.keySet()) {
+                            result.put(key, result.optDouble(key,0) + obj.getDouble(key));
+                        }
+                    }
+                    out.println(result.toString());
+                    break;
                 }
-                output = mergedObj.toString();
+
+                default:
+                    out.println("ERROR Unknown reducer command");
             }
-            out.println(output);
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            try { socket.close(); }
-            catch (IOException ignored) {}
+            try { sock.close(); } catch (IOException ignored) {}
         }
     }
 }
