@@ -1,39 +1,53 @@
 @echo off
 setlocal
 
-REM === Path to your JSON library (if using a JAR) ===
-set JSON_JAR=json-20210307.jar
 
-REM 1) Compile everything (including your org.json JAR on the classpath)
-javac -cp .;%JSON_JAR% Master.java Worker.java Reducer.java AppManager.java AppClient.java
+set JSON_SRC=C:\Users\super\Downloads\3210259_3210112_3110171
+
+
+echo Compiling org.json sources...
+javac -d . "%JSON_SRC%\org\json\*.java"
 if errorlevel 1 (
-  echo ***
-  echo Compilation failed. Fix errors above.
+  echo *** Failed to compile org.json from %JSON_SRC%\org\json ***
   pause
   exit /b 1
 )
 
-REM 2) Start 3 Workers (only one argument: the port)
+
+echo Compiling project sources...
+javac -cp . Master.java Worker.java Reducer.java AppManager.java AppClient.java
+if errorlevel 1 (
+  echo *** Project compilation failed. Fix errors above. ***
+  pause
+  exit /b 1
+)
+
+
 echo Starting Workers...
-start "Worker6000" cmd /k "java -cp .;%JSON_JAR% Worker 6000"
-start "Worker6001" cmd /k "java -cp .;%JSON_JAR% Worker 6001"
-start "Worker6002" cmd /k "java -cp .;%JSON_JAR% Worker 6002"
+start "Worker6000" cmd /k "java -cp . Worker 6000"
+start "Worker6001" cmd /k "java -cp . Worker 6001"
+start "Worker6002" cmd /k "java -cp . Worker 6002"
 
-REM 3) Start Reducer (no args)
+
 echo Starting Reducer...
-start "Reducer" cmd /k "java -cp .;%JSON_JAR% Reducer"
+start "Reducer" cmd /k "java -cp . Reducer"
 
-REM 4) Start Master (no args)
+
 echo Starting Master...
-start "Master" cmd /k "java -cp .;%JSON_JAR% Master"
+start "Master" cmd /k ^
+  "java -cp . Master ^
+    5000 ^
+    127.0.0.1:7000 ^
+    127.0.0.1:6000 ^
+    127.0.0.1:6001 ^
+    127.0.0.1:6002"
 
-REM 5) Start Manager UI (no args)
-echo Starting AppManager...
-start "AppManager" cmd /k "java -cp .;%JSON_JAR% AppManager"
 
-REM 6) Start Client UI (no args)
-echo Starting AppClient...
-start "AppClient" cmd /k "java -cp .;%JSON_JAR% AppClient"
+echo Starting Manager UI...
+start "AppManager" cmd /k "java -cp . AppManager"
+
+echo Starting Client UI...
+start "AppClient" cmd /k "java -cp . AppClient"
 
 echo.
 echo All processes launched.

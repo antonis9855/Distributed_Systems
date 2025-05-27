@@ -29,36 +29,34 @@ public class Master {
     private static class ManagerHandler implements Runnable {
         private final Socket managerSocket;
 
-        ManagerHandler(Socket socket) {
-            this.managerSocket = socket;
+        ManagerHandler(Socket sock) {
+            this.managerSocket = sock;
         }
 
         @Override
         public void run() {
             try (
-                BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(managerSocket.getInputStream()));
-                PrintWriter writer = new PrintWriter(
-                    managerSocket.getOutputStream(), true)
+              BufferedReader reader = new BufferedReader(
+                  new InputStreamReader(managerSocket.getInputStream()));
+              PrintWriter writer = new PrintWriter(
+                  managerSocket.getOutputStream(), true)
             ) {
                 String request = reader.readLine();
                 if (request == null) return;
 
                 String[] parts   = request.split(" ", 2);
                 String   command = parts[0];
-                String   payload = parts.length > 1 ? parts[1].trim() : "";
+                String   payload = parts.length > 1 ? parts[1] : "";
 
                 if ("SEARCH".equals(command)) {
-                    String merged = handleSearch(request);
-                    writer.println(merged != null ? merged : "[]");
+                    writer.println(handleSearch(request));
 
                 } else if (
                     "TOTAL_SALES_PER_PRODUCT".equals(command) ||
                     "TOTAL_SALES_BY_STORE_TYPE".equals(command) ||
                     "TOTAL_SALES_BY_PRODUCT_CATEGORY".equals(command)
                 ) {
-                    String merged = handleAggregate(command, payload);
-                    writer.println(merged != null ? merged : "{}");
+                    writer.println(handleAggregate(command, payload));
 
                 } else if (
                     "ADD_SHOP".equals(command)    ||
@@ -68,15 +66,11 @@ public class Master {
                     "BUY".equals(command)         ||
                     "RATE".equals(command)
                 ) {
-                    // ACTIVE REPLICATION: send to ALL workers
+                    // replicate to all workers
                     boolean anyOk = false;
                     for (int i = 0; i < workerHosts.length; i++) {
-                        String host = workerHosts[i];
-                        int    port = workerBasePort + i;
-                        String resp = talk(host, port, request);
-                        if ("OK".equals(resp)) {
-                            anyOk = true;
-                        }
+                        String resp = talk(workerHosts[i], workerBasePort + i, request);
+                        if ("OK".equals(resp)) anyOk = true;
                     }
                     writer.println(anyOk ? "OK" : "ERROR");
 
@@ -90,17 +84,17 @@ public class Master {
             }
         }
 
-        private String handleSearch(String request) {
+        private String handleSearch(String req) {
             talkReducer("RESET_SEARCH", "");
             for (int i = 0; i < workerHosts.length; i++) {
-                talk(workerHosts[i], workerBasePort + i, request);
+                talk(workerHosts[i], workerBasePort + i, req);
             }
             return talkReducer("REDUCE_SEARCH", "");
         }
 
-        private String handleAggregate(String command, String payload) {
+        private String handleAggregate(String cmd, String pl) {
             talkReducer("RESET_AGG", "");
-            String msg = command + (payload.isEmpty() ? "" : " " + payload);
+            String msg = cmd + (pl.isEmpty() ? "" : " " + pl);
             for (int i = 0; i < workerHosts.length; i++) {
                 talk(workerHosts[i], workerBasePort + i, msg);
             }
@@ -109,10 +103,10 @@ public class Master {
 
         private String talk(String host, int port, String msg) {
             try (
-                Socket sock = new Socket(host, port);
-                PrintWriter out = new PrintWriter(sock.getOutputStream(), true);
-                BufferedReader in = new BufferedReader(
-                    new InputStreamReader(sock.getInputStream()))
+              Socket s = new Socket(host, port);
+              PrintWriter out = new PrintWriter(s.getOutputStream(), true);
+              BufferedReader in = new BufferedReader(
+                  new InputStreamReader(s.getInputStream()))
             ) {
                 out.println(msg);
                 return in.readLine();
@@ -121,13 +115,13 @@ public class Master {
             }
         }
 
-        private String talkReducer(String cmd, String payload) {
-            String full = payload.isEmpty() ? cmd : cmd + " " + payload;
+        private String talkReducer(String cmd, String pl) {
+            String full = pl.isEmpty() ? cmd : cmd + " " + pl;
             try (
-                Socket sock = new Socket(reducerHost, reducerPort);
-                PrintWriter out = new PrintWriter(sock.getOutputStream(), true);
-                BufferedReader in = new BufferedReader(
-                    new InputStreamReader(sock.getInputStream()))
+              Socket s = new Socket(reducerHost, reducerPort);
+              PrintWriter out = new PrintWriter(s.getOutputStream(), true);
+              BufferedReader in = new BufferedReader(
+                  new InputStreamReader(s.getInputStream()))
             ) {
                 out.println(full);
                 return in.readLine();
