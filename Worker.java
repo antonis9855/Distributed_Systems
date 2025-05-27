@@ -5,7 +5,7 @@ import org.json.*;
 
 public class Worker {
     private final int port;
-    private final Map<String, Shop> shopMap = Collections.synchronizedMap(new HashMap<String, Shop>());
+    private final Map<String,Shop> shopMap = Collections.synchronizedMap(new HashMap<>());
     private static final String REDUCER_HOST = "127.0.0.1";
     private static final int    REDUCER_PORT = 7000;
 
@@ -41,14 +41,15 @@ public class Worker {
             String line = reader.readLine();
             if (line == null) return;
 
-            String[] parts = line.split(" ", 2);
-            String command = parts[0];
-            String payload = parts.length > 1 ? parts[1] : "";
+            String[] parts  = line.split(" ", 2);
+            String command  = parts[0];
+            String payload  = parts.length > 1 ? parts[1] : "";
 
             switch (command) {
                 case "ADD_SHOP":
                     addShop(new JSONObject(payload));
                     writer.println("OK");
+                    printState();
                     break;
 
                 case "ADD_ITEM": {
@@ -58,6 +59,7 @@ public class Worker {
                         wp.getJSONObject("Product")
                     );
                     writer.println("OK");
+                    printState();
                     break;
                 }
 
@@ -68,6 +70,7 @@ public class Worker {
                         wp.getString("ProductName")
                     );
                     writer.println("OK");
+                    printState();
                     break;
                 }
 
@@ -79,6 +82,7 @@ public class Worker {
                         wp.getInt("Delta")
                     );
                     writer.println("OK");
+                    printState();
                     break;
                 }
 
@@ -115,6 +119,7 @@ public class Worker {
                 case "BUY": {
                     JSONObject result = buy(new JSONObject(payload));
                     writer.println(result.toString());
+                    printState();
                     break;
                 }
 
@@ -136,6 +141,18 @@ public class Worker {
                     } else {
                         writer.println("NO_STORE");
                     }
+                    printState();
+                    break;
+                }
+
+                case "DUMP": {
+                    JSONArray dump = new JSONArray();
+                    synchronized (shopMap) {
+                        for (Shop s : shopMap.values()) {
+                            dump.put(s.toJson());
+                        }
+                    }
+                    writer.println(dump.toString());
                     break;
                 }
 
@@ -147,6 +164,25 @@ public class Worker {
         } finally {
             try { clientSocket.close(); } catch (IOException ignored) {}
         }
+    }
+
+    private void printState() {
+        System.out.println("\n=== Worker@" + port + " State ===");
+        synchronized (shopMap) {
+            for (Shop s : shopMap.values()) {
+                System.out.printf(
+                    "Store: %s | Category: %s | Stars: %d | Votes: %d | TotalSales: %.2f%n",
+                    s.storeName, s.foodCategory, s.starRating, s.noOfVotes, s.totalSales
+                );
+                for (Product p : s.productMap.values()) {
+                    System.out.printf(
+                        "  - Product: %s | Type: %s | Price: %.2f | Stock: %d | Revenue: %.2f%n",
+                        p.name, p.type, p.price, p.stock, p.revenue
+                    );
+                }
+            }
+        }
+        System.out.println("=== End State ===\n");
     }
 
     private void sendToReducer(String msg) {
@@ -168,8 +204,10 @@ public class Worker {
         int starRating       = js.getInt("Stars");
         int voteCount        = js.getInt("NoOfVotes");
         String storeLogo     = js.optString("StoreLogo", "");
-        Shop shop = new Shop(storeName, latitude, longitude,
-                             foodCategory, starRating, voteCount, storeLogo);
+        Shop shop = new Shop(
+            storeName, latitude, longitude,
+            foodCategory, starRating, voteCount, storeLogo
+        );
 
         JSONArray products = js.optJSONArray("Products");
         if (products != null) {

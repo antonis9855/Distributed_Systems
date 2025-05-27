@@ -68,13 +68,17 @@ public class Master {
                     "BUY".equals(command)         ||
                     "RATE".equals(command)
                 ) {
-                   
-                    String storeName = new JSONObject(payload).getString("StoreName");
-                    int idx = Math.abs(storeName.hashCode()) % Master.workerHosts.length;
-                    String host = Master.workerHosts[idx];
-                    int    port = Master.workerBasePort + idx;
-                    String resp = talk(host, port, request);
-                    writer.println(resp != null ? resp : "ERROR");
+                    // ACTIVE REPLICATION: send to ALL workers
+                    boolean anyOk = false;
+                    for (int i = 0; i < workerHosts.length; i++) {
+                        String host = workerHosts[i];
+                        int    port = workerBasePort + i;
+                        String resp = talk(host, port, request);
+                        if ("OK".equals(resp)) {
+                            anyOk = true;
+                        }
+                    }
+                    writer.println(anyOk ? "OK" : "ERROR");
 
                 } else {
                     writer.println("ERROR Unknown command");
@@ -87,21 +91,18 @@ public class Master {
         }
 
         private String handleSearch(String request) {
-            // clear previous
             talkReducer("RESET_SEARCH", "");
-            // map phase on all workers
-            for (int i = 0; i < Master.workerHosts.length; i++) {
-                talk(Master.workerHosts[i], Master.workerBasePort + i, request);
+            for (int i = 0; i < workerHosts.length; i++) {
+                talk(workerHosts[i], workerBasePort + i, request);
             }
-            // reduce phase
             return talkReducer("REDUCE_SEARCH", "");
         }
 
         private String handleAggregate(String command, String payload) {
             talkReducer("RESET_AGG", "");
             String msg = command + (payload.isEmpty() ? "" : " " + payload);
-            for (int i = 0; i < Master.workerHosts.length; i++) {
-                talk(Master.workerHosts[i], Master.workerBasePort + i, msg);
+            for (int i = 0; i < workerHosts.length; i++) {
+                talk(workerHosts[i], workerBasePort + i, msg);
             }
             return talkReducer("REDUCE_AGG", "");
         }
@@ -123,7 +124,7 @@ public class Master {
         private String talkReducer(String cmd, String payload) {
             String full = payload.isEmpty() ? cmd : cmd + " " + payload;
             try (
-                Socket sock = new Socket(Master.reducerHost, Master.reducerPort);
+                Socket sock = new Socket(reducerHost, reducerPort);
                 PrintWriter out = new PrintWriter(sock.getOutputStream(), true);
                 BufferedReader in = new BufferedReader(
                     new InputStreamReader(sock.getInputStream()))
