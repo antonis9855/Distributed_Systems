@@ -23,12 +23,12 @@ public class Reducer {
             BufferedReader in  = new BufferedReader(new InputStreamReader(sock.getInputStream()));
             PrintWriter    out = new PrintWriter(sock.getOutputStream(), true)
         ) {
-            String line = in.readLine();  
+            String line = in.readLine();
             if (line == null) return;
 
-            String[] parts  = line.split(" ", 2);
-            String   cmd    = parts[0];
-            String   payload= parts.length > 1 ? parts[1] : "";
+            String[] parts   = line.split(" ", 2);
+            String   cmd     = parts[0];
+            String   payload = parts.length > 1 ? parts[1] : "";
 
             switch (cmd) {
                 case "RESET_SEARCH":
@@ -37,15 +37,23 @@ public class Reducer {
                     break;
 
                 case "MAP_SEARCH":
+
                     searchMaps.add(new JSONArray(payload));
                     out.println("OK");
                     break;
 
                 case "REDUCE_SEARCH": {
+                    
                     JSONArray merged = new JSONArray();
+                    Set<String> seen = new HashSet<>();
                     for (JSONArray arr : searchMaps) {
                         for (int i = 0; i < arr.length(); i++) {
-                            merged.put(arr.get(i));
+                            JSONObject shop = arr.getJSONObject(i);
+                            String name = shop.optString("StoreName");
+                            if (!seen.contains(name)) {
+                                seen.add(name);
+                                merged.put(shop);
+                            }
                         }
                     }
                     out.println(merged.toString());
@@ -66,7 +74,7 @@ public class Reducer {
                     JSONObject result = new JSONObject();
                     for (JSONObject obj : aggregateMaps) {
                         for (String key : obj.keySet()) {
-                            result.put(key, result.optDouble(key,0) + obj.getDouble(key));
+                            result.put(key, result.optDouble(key, 0) + obj.getDouble(key));
                         }
                     }
                     out.println(result.toString());
