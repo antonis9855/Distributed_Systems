@@ -1,0 +1,96 @@
+{
+  "StoreName": "Macchiato",
+  "Latitude": 37.9932963,
+  "Longitude": 23.733413,
+  "FoodCategory": "cafe",
+  "Stars": 5,
+  "NoOfVotes": 520,
+  "StoreLogo": "images/pizza_fun_logo.png",
+  "Products": [
+    {
+      "ProductName": "Fredo Espresso",
+      "ProductType": "cafe",
+      "Available Amount": 1000,
+      "Price": 3.2
+    },
+    {
+      "ProductName": "Fredo Cappuccino",
+      "ProductType": "cafe",
+      "Available Amount": 1000,
+      "Price": 3.2
+    },
+    {
+      "ProductName": "Macchiato Espresso",
+      "ProductType": "cafe",
+      "Available Amount": 1000,
+      "Price": 3.2
+    },
+    {
+      "ProductName": "Cold Chocolate",
+      "ProductType": "cafe",
+      "Available Amount": 1000,
+      "Price": 4
+    },
+    {
+      "ProductName": "Hot Chocolate",
+      "ProductType": "cafe",
+      "Available Amount": 1000,
+      "Price": 4
+    },
+    {
+      "ProductName": "Hot Tea",
+      "ProductType": "tea",
+      "Available Amount": 1000,
+      "Price": 3
+    },
+    {
+      "ProductName": "Cold Tea",
+      "ProductType": "tea",
+      "Available Amount": 1000,
+      "Price": 3
+    },
+    {
+      "ProductName": "Coca cola",
+      "ProductType": "soda",
+      "Available Amount": 500,
+      "Price": 3.0
+    },
+    {
+      "ProductName": "Coca cola zero",
+      "ProductType": "soda",
+      "Available Amount": 500,
+      "Price": 3.0
+    },
+    {
+      "ProductName": "Coca cola light",
+      "ProductType": "soda",
+      "Available Amount": 500,
+      "Price": 3.0
+    },
+    {
+      "ProductName": "Loux orange",
+      "ProductType": "soda",
+      "Available Amount": 500,
+      "Price": 3.0
+    },
+    {
+      "ProductName": "Loux lemon",
+      "ProductType": "soda",
+      "Available Amount": 500,
+      "Price": 3.0
+    },
+    {
+      "ProductName": "Amstel",
+      "ProductType": "beer",
+      "Available Amount": 500,
+      "Price": 3.0
+    },
+    {
+      "ProductName": "Heineken",
+      "ProductType": "beer",
+      "Available Amount": 500,
+      "Price": 3.0
+    }
+
+  ]
+}

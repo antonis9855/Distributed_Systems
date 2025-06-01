@@ -1,0 +1,78 @@
+{
+  "StoreName": "TGIF",
+  "Latitude": 37.9932963,
+  "Longitude": 23.733413,
+  "FoodCategory": "burger",
+  "Stars": 4,
+  "NoOfVotes": 100,
+  "StoreLogo": "images/pizza_fun_logo.png",
+  "Products": [
+    {
+      "ProductName": "Hangover",
+      "ProductType": "burger",
+      "Available Amount": 100,
+      "Price": 13.5
+    },
+    {
+      "ProductName": "Cheeseburger",
+      "ProductType": "burger",
+      "Available Amount": 50,
+      "Price": 10.0
+    },
+    {
+      "ProductName": "Chicken Alfredo",
+      "ProductType": "pasta",
+      "Available Amount": 30,
+      "Price": 14.0
+    },
+    {
+      "ProductName": "Carbonara",
+      "ProductType": "pasta",
+      "Available Amount": 130,
+      "Price": 11.0
+    },
+    {
+      "ProductName": "Coca cola",
+      "ProductType": "soda",
+      "Available Amount": 500,
+      "Price": 3.0
+    },
+    {
+      "ProductName": "Coca cola zero",
+      "ProductType": "soda",
+      "Available Amount": 500,
+      "Price": 3.0
+    },
+    {
+      "ProductName": "Coca cola light",
+      "ProductType": "soda",
+      "Available Amount": 500,
+      "Price": 3.0
+    },
+    {
+      "ProductName": "Loux orange",
+      "ProductType": "soda",
+      "Available Amount": 500,
+      "Price": 3.0
+    },
+    {
+      "ProductName": "Loux lemon",
+      "ProductType": "soda",
+      "Available Amount": 500,
+      "Price": 3.0
+    },
+    {
+      "ProductName": "Amstel",
+      "ProductType": "beer",
+      "Available Amount": 500,
+      "Price": 3.0
+    },
+    {
+      "ProductName": "Heineken",
+      "ProductType": "beer",
+      "Available Amount": 500,
+      "Price": 3.0
+    }
+
+  ]
+}

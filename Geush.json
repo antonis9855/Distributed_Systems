@@ -1,0 +1,103 @@
+{
+  "StoreName": "Geush",
+  "Latitude": 37.9932963,
+  "Longitude": 23.733413,
+  "FoodCategory": "souvlaki",
+  "Stars": 4,
+  "NoOfVotes": 200,
+  "StoreLogo": "images/pizza_fun_logo.png",
+  "Products": [
+    {
+      "ProductName": "souvlaki",
+      "ProductType": "souvlaki",
+      "Available Amount": 500,
+      "Price": 3
+    },
+    {
+      "ProductName": "Pita guros xoirinos",
+      "ProductType": "souvlaki",
+      "Available Amount": 350,
+      "Price": 5.0
+    },
+    {
+      "ProductName": "Pita guros kotopoulo",
+      "ProductType": "souvlaki",
+      "Available Amount": 350,
+      "Price": 5.0
+    },
+    {
+      "ProductName": "Pita souvlaki kotopoulo",
+      "ProductType": "souvlaki",
+      "Available Amount": 100,
+      "Price": 5.0
+    },
+
+    {
+      "ProductName": "Pita souvlaki xoirino",
+      "ProductType": "souvlaki",
+      "Available Amount": 250,
+      "Price": 5.0
+    },
+    {
+      "ProductName": "Pita vegan",
+      "ProductType": "pasta",
+      "Available Amount": 130,
+      "Price": 4.0
+    },
+    {
+      "ProductName": "xwriatikh Salad",
+      "ProductType": "salad",
+      "Available Amount": 30,
+      "Price": 7.0
+    },
+    {
+      "ProductName": "Roka parmezana Salad",
+      "ProductType": "salad",
+      "Available Amount": 50,
+      "Price": 8.0
+    },
+    {
+      "ProductName": "Coca cola",
+      "ProductType": "soda",
+      "Available Amount": 500,
+      "Price": 3.0
+    },
+    {
+      "ProductName": "Coca cola zero",
+      "ProductType": "soda",
+      "Available Amount": 500,
+      "Price": 3.0
+    },
+    {
+      "ProductName": "Coca cola light",
+      "ProductType": "soda",
+      "Available Amount": 500,
+      "Price": 3.0
+    },
+    {
+      "ProductName": "Loux orange",
+      "ProductType": "soda",
+      "Available Amount": 500,
+      "Price": 3.0
+    },
+    {
+      "ProductName": "Loux lemon",
+      "ProductType": "soda",
+      "Available Amount": 500,
+      "Price": 3.0
+    },
+    {
+      "ProductName": "Amstel",
+      "ProductType": "beer",
+      "Available Amount": 500,
+      "Price": 3.0
+    },
+    {
+      "ProductName": "Heineken",
+      "ProductType": "beer",
+      "Available Amount": 500,
+      "Price": 3.0
+    }
+
+  ]
+}

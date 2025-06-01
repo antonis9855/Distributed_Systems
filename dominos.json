@@ -1,0 +1,35 @@
+{
+  "StoreName": "Dominos",
+  "Latitude": 37.992500,
+  "Longitude": 23.735000,
+  "FoodCategory": "pizzeria",
+  "Stars": 5,
+  "NoOfVotes": 200,
+  "StoreLogo": "images/dominos_logo.png",
+  "Products": [
+    {
+      "ProductName": "Classic Cheese",
+      "ProductType": "pizza",
+      "Available Amount": 150,
+      "Price": 7.50
+    },
+    {
+      "ProductName": "Pepperoni Passion",
+      "ProductType": "pizza",
+      "Available Amount": 100,
+      "Price": 9.50
+    },
+    {
+      "ProductName": "Chicken Italiano",
+      "ProductType": "pizza",
+      "Available Amount": 80,
+      "Price": 11.00
+    },
+    {
+      "ProductName": "Garden Fresh Salad",
+      "ProductType": "salad",
+      "Available Amount": 40,
+      "Price": 5.00
+    }
+  ]
+}

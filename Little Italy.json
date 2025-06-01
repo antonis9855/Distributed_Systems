@@ -1,0 +1,102 @@
+{
+  "StoreName": "Little Italy",
+  "Latitude": 37.9932963,
+  "Longitude": 23.733413,
+  "FoodCategory": "pizzeria",
+  "Stars": 4,
+  "NoOfVotes": 200,
+  "StoreLogo": "images/pizza_fun_logo.png",
+  "Products": [
+    {
+      "ProductName": "Margherita",
+      "ProductType": "pizza",
+      "Available Amount": 100,
+      "Price": 10
+    },
+    {
+      "ProductName": "Pepperoni",
+      "ProductType": "pizza",
+      "Available Amount": 50,
+      "Price": 13.0
+    },
+    {
+      "ProductName": "Napoli",
+      "ProductType": "pizza",
+      "Available Amount": 100,
+      "Price": 14.0
+    },
+    {
+      "ProductName": "Special",
+      "ProductType": "pizza",
+      "Available Amount": 250,
+      "Price": 19.0
+    },
+    {
+      "ProductName": "Prosciutto",
+      "ProductType": "pizza",
+      "Available Amount": 250,
+      "Price": 19.0
+    },
+    {
+      "ProductName": "Carbonara",
+      "ProductType": "pasta",
+      "Available Amount": 130,
+      "Price": 11.0
+    },
+    {
+      "ProductName": "Caesar Salad",
+      "ProductType": "salad",
+      "Available Amount": 30,
+      "Price": 7.0
+    },
+    {
+      "ProductName": "Chef Salad",
+      "ProductType": "salad",
+      "Available Amount": 50,
+      "Price": 8.0
+    },
+    {
+      "ProductName": "Coca cola",
+      "ProductType": "soda",
+      "Available Amount": 500,
+      "Price": 3.0
+    },
+    {
+      "ProductName": "Coca cola zero",
+      "ProductType": "soda",
+      "Available Amount": 500,
+      "Price": 3.0
+    },
+    {
+      "ProductName": "Coca cola light",
+      "ProductType": "soda",
+      "Available Amount": 500,
+      "Price": 3.0
+    },
+    {
+      "ProductName": "Loux orange",
+      "ProductType": "soda",
+      "Available Amount": 500,
+      "Price": 3.0
+    },
+    {
+      "ProductName": "Loux lemon",
+      "ProductType": "soda",
+      "Available Amount": 500,
+      "Price": 3.0
+    },
+    {
+      "ProductName": "Amstel",
+      "ProductType": "beer",
+      "Available Amount": 500,
+      "Price": 3.0
+    },
+    {
+      "ProductName": "Heineken",
+      "ProductType": "beer",
+      "Available Amount": 500,
+      "Price": 3.0
+    }
+
+  ]
+}

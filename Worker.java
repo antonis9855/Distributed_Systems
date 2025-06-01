@@ -21,6 +21,8 @@ public class Worker {
     }
 
     public void run() throws IOException {
+        System.out.println("[DEBUG] Handling run in Worker :" + port);
+
         ServerSocket serverSocket = new ServerSocket(port);
         System.out.println("Worker started on port " + port);
         while (true) {
@@ -39,42 +41,52 @@ public class Worker {
             String payload = parts.length > 1 ? parts[1] : "";
             switch (command) {
                 case "ADD_SHOP":
+                    System.out.println("[DEBUG] Handling case ADD_SHOP in Worker" + port );
+
                     addShop(new JSONObject(payload));
                     writer.println("OK");
                     break;
                 case "ADD_ITEM": {
+                    System.out.println("[DEBUG] Handling case ADD_ITEM in Worker" + port );
                     String[] p = payload.split(" ", 2);
                     addItem(p[0], new JSONObject(p[1]));
                     writer.println("OK");
                     break;
                 }
                 case "REMOVE_ITEM": {
+                    System.out.println("[DEBUG] Handling case REMOVE_ITEM in Worker" + port );
                     String[] p = payload.split(" ", 2);
                     removeItem(p[0], p[1]);
                     writer.println("OK");
                     break;
                 }
                 case "RESTOCK": {
+                    System.out.println("[DEBUG] Handling case RESTOCK in Worker" + port );
                     String[] p = payload.split(" ", 3);
                     restock(p[0], p[1], Integer.parseInt(p[2]));
                     writer.println("OK");
                     break;
                 }
                 case "SEARCH":
+                    System.out.println("[DEBUG] Handling case SEARCH in Worker" + port );
                     writer.println(search(new JSONObject(payload)).toString());
                     break;
                 case "BUY":
+                    System.out.println("[DEBUG] Handling case BUY in Worker" + port );
                     writer.println(buy(new JSONObject(payload)).toString());
                     break;
                 case "TOTAL_SALES_PER_PRODUCT":
+                    System.out.println("[DEBUG] Handling case TOTAL_SALES_PER_PRODUCT in Worker" + port );
                     writer.println(totalSalesPerProduct().toString());
                     break;
                 case "TOTAL_SALES_BY_STORE_TYPE": {
+                    System.out.println("[DEBUG] Handling case TOTAL_SALES_BY_STORE_TYPE in Worker" + port );
                     String category = new JSONObject(payload).getString("FoodCategory");
                     writer.println(totalSalesByStoreType(category).toString());
                     break;
                 }
                 case "TOTAL_SALES_BY_PRODUCT_CATEGORY": {
+                    System.out.println("[DEBUG] Handling case TOTAL_SALES_BY_PRODUCT_CATEGORY in Worker" + port );
                     String type = new JSONObject(payload).getString("ProductType");
                     writer.println(totalSalesByProductCategory(type).toString());
                     break;
@@ -270,13 +282,34 @@ public class Worker {
         return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
 
-    private String computePriceBand(Shop s) {
-        if (s.productMap.isEmpty()) return "$";
-        double sum = 0;
-        for (Product p : s.productMap.values()) sum += p.price;
-        double avg = sum / s.productMap.size();
-        return avg <= 5 ? "$" : avg <= 15 ? "$$" : "$$$";
-    }
+
+
+        private String computePriceBand(Shop shop) {
+
+            if (shop.productMap.isEmpty()) {
+                return "$";
+            }
+
+            double totalPrice = 0.0;
+            for (Product p : shop.productMap.values()) {
+                totalPrice += p.price;
+            }
+
+            double average = totalPrice / shop.productMap.size();
+
+
+            if (average <= 5.0) {
+                return "$";
+            } else if (average <= 15.0) {
+                return "$$";
+            } else {
+                return "$$$";
+            }
+        }
+
+
+
+    
 
     static class Shop {
         String storeName, foodCategory, storeLogo;

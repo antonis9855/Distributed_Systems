@@ -24,6 +24,55 @@
       "ProductType": "salad",
       "Available Amount": 30,
       "Price": 6.0
+    },
+    {
+      "ProductName": "Carbonara",
+      "ProductType": "pasta",
+      "Available Amount": 130,
+      "Price": 11.0
+    },
+    {
+      "ProductName": "Coca cola",
+      "ProductType": "soda",
+      "Available Amount": 500,
+      "Price": 3.0
+    },
+    {
+      "ProductName": "Coca cola zero",
+      "ProductType": "soda",
+      "Available Amount": 500,
+      "Price": 3.0
+    },
+    {
+      "ProductName": "Coca cola light",
+      "ProductType": "soda",
+      "Available Amount": 500,
+      "Price": 3.0
+    },
+    {
+      "ProductName": "Loux orange",
+      "ProductType": "soda",
+      "Available Amount": 500,
+      "Price": 3.0
+    },
+    {
+      "ProductName": "Loux lemon",
+      "ProductType": "soda",
+      "Available Amount": 500,
+      "Price": 3.0
+    },
+    {
+      "ProductName": "Amstel",
+      "ProductType": "beer",
+      "Available Amount": 500,
+      "Price": 3.0
+    },
+    {
+      "ProductName": "Heineken",
+      "ProductType": "beer",
+      "Available Amount": 500,
+      "Price": 3.0
     }
+
   ]
 }

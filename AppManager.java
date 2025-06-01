@@ -11,6 +11,7 @@ public class AppManager {
     private static final int MASTER_PORT = 5000;
 
     public static void main(String[] args) {
+        System.out.println("[DEBUG] Entering method: void");
         Scanner scanner = new Scanner(System.in);
         while (true) {
             System.out.println();
@@ -31,7 +32,10 @@ public class AppManager {
                 break;
             }
             switch (choice) {
+        
+        
                 case "1":
+                    System.out.println("[DEBUG] Handling case 1:");
                     System.out.print("Path to store JSON file: ");
                     String storePath = scanner.nextLine().trim();
                     String storeJson = readFile(storePath);
@@ -39,7 +43,9 @@ public class AppManager {
                         System.out.println(sendRequest("ADD_SHOP " + storeJson));
                     }
                     break;
+        
                 case "2":
+                    System.out.println("[DEBUG] Handling case 2:");
                     System.out.print("Store name: ");
                     String addStore = scanner.nextLine().trim();
                     System.out.print("Path to product JSON file: ");
@@ -49,14 +55,18 @@ public class AppManager {
                         System.out.println(sendRequest("ADD_ITEM " + addStore + " " + prodJson));
                     }
                     break;
+        
                 case "3":
+                    System.out.println("[DEBUG] Handling case 3:");
                     System.out.print("Store name: ");
                     String remStore = scanner.nextLine().trim();
                     System.out.print("Product name: ");
                     String remProduct = scanner.nextLine().trim();
                     System.out.println(sendRequest("REMOVE_ITEM " + remStore + " " + remProduct));
                     break;
+        
                 case "4":
+                    System.out.println("[DEBUG] Handling case 4:");
                     System.out.print("Store name: ");
                     String resStore = scanner.nextLine().trim();
                     System.out.print("Product name: ");
@@ -65,15 +75,20 @@ public class AppManager {
                     String delta = scanner.nextLine().trim();
                     System.out.println(sendRequest("RESTOCK " + resStore + " " + resProduct + " " + delta));
                     break;
+        
                 case "5":
+                    System.out.println("[DEBUG] Handling case 5:");
                     String s5 = sendRequest("TOTAL_SALES_PER_PRODUCT");
                     JSONObject j5 = new JSONObject(s5);
                     System.out.println("Sales per product:");
                     for (String prod : j5.keySet()) {
+                    System.out.println("[DEBUG] Entering method: for");
                         System.out.printf("  %s: %.2f%n", prod, j5.getDouble(prod));
                     }
                     break;
+        
                 case "6":
+                    System.out.println("[DEBUG] Handling case  6:");
                     System.out.print("Food category: ");
                     String cat = scanner.nextLine().trim();
                     JSONObject catFilter = new JSONObject().put("FoodCategory", cat);
@@ -81,10 +96,13 @@ public class AppManager {
                     JSONObject j6 = new JSONObject(s6);
                     System.out.println("Sales by store category:");
                     for (String store : j6.keySet()) {
+                    System.out.println("[DEBUG] Entering method: for");
                         System.out.printf("  %s: %.2f%n", store, j6.getDouble(store));
                     }
                     break;
+        
                 case "7":
+                    System.out.println("[DEBUG] Handling case  7 :");
                     System.out.print("Product type: ");
                     String pt = scanner.nextLine().trim();
                     JSONObject prodFilter = new JSONObject().put("ProductType", pt);
@@ -92,9 +110,11 @@ public class AppManager {
                     JSONObject j7 = new JSONObject(s7);
                     System.out.println("Sales by product category:");
                     for (String store : j7.keySet()) {
+                    System.out.println("[DEBUG] Entering method: for");
                         System.out.printf("  %s: %.2f%n", store, j7.getDouble(store));
                     }
                     break;
+                    
                 default:
                     System.out.println("Invalid choice");
             }
@@ -102,6 +122,7 @@ public class AppManager {
     }
 
     private static String readFile(String path) {
+        System.out.println("[DEBUG] Entering method: readFile");
         try {
             byte[] bytes = Files.readAllBytes(Paths.get(path));
             String content = new String(bytes, StandardCharsets.UTF_8);
@@ -120,6 +141,7 @@ public class AppManager {
     }
 
     private static String sendRequest(String request) {
+        System.out.println("[DEBUG] Entering method: sendRequest");
         try (Socket sock = new Socket(MASTER_HOST, MASTER_PORT);
              PrintWriter out = new PrintWriter(sock.getOutputStream(), true);
              BufferedReader in = new BufferedReader(new InputStreamReader(sock.getInputStream()))) {
