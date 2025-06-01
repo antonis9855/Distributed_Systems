@@ -1,22 +1,28 @@
+// Master.java
 import java.io.*;
 import java.net.*;
-import java.util.*;
 import org.json.*;
 
 public class Master {
-    public static final int MASTER_PORT       = 5000;
-    public static final String[] WORKER_HOSTS = {
-        "127.0.0.1", "127.0.0.1", "127.0.0.1"
+    static final int masterPort       = 5000;
+    static final String[] workerHosts = {
+        "127.0.0.1",
+        "127.0.0.1",
+        "127.0.0.1"
     };
-    public static final int WORKER_BASE_PORT  = 6000;
-    public static final String REDUCER_HOST   = "127.0.0.1";
-    public static final int REDUCER_PORT      = 7000;
-    public static final int REPLICA_COUNT     = 2;
+    static final int workerBasePort   = 6000;
+    static final String reducerHost   = "127.0.0.1";
+    static final int reducerPort      = 7000;
 
     public static void main(String[] args) {
+<<<<<<< HEAD
         System.out.println("[DEBUG] Entering method: void main");
         try (ServerSocket serverSocket = new ServerSocket(MASTER_PORT)) {
             System.out.println("Master started on port " + MASTER_PORT);
+=======
+        System.out.println("Master started on port " + masterPort);
+        try (ServerSocket serverSocket = new ServerSocket(masterPort)) {
+>>>>>>> 9a44961fdf75d9b87841c6c49eba762a657dd748
             while (true) {
                 Socket managerSocket = serverSocket.accept();
                 new Thread(new ManagerHandler(managerSocket)).start();
@@ -27,14 +33,15 @@ public class Master {
     }
 
     private static class ManagerHandler implements Runnable {
-        private final Socket socket;
+        private final Socket managerSocket;
 
-        ManagerHandler(Socket socket) {
-            this.socket = socket;
+        ManagerHandler(Socket sock) {
+            this.managerSocket = sock;
         }
 
         @Override
         public void run() {
+<<<<<<< HEAD
         System.out.println("[DEBUG] Entering method: run void");
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                  PrintWriter  writer = new PrintWriter(socket.getOutputStream(), true))
@@ -88,15 +95,58 @@ public class Master {
                     default:
                         System.out.println("[DEBUG] Handling default:");
                         writer.println("ERROR Unknown command");
+=======
+            try (
+              BufferedReader reader = new BufferedReader(
+                  new InputStreamReader(managerSocket.getInputStream()));
+              PrintWriter writer = new PrintWriter(
+                  managerSocket.getOutputStream(), true)
+            ) {
+                String request = reader.readLine();
+                if (request == null) return;
+
+                String[] parts   = request.split(" ", 2);
+                String   command = parts[0];
+                String   payload = parts.length > 1 ? parts[1] : "";
+
+                if ("SEARCH".equals(command)) {
+                    writer.println(handleSearch(request));
+
+                } else if (
+                    "TOTAL_SALES_PER_PRODUCT".equals(command) ||
+                    "TOTAL_SALES_BY_STORE_TYPE".equals(command) ||
+                    "TOTAL_SALES_BY_PRODUCT_CATEGORY".equals(command)
+                ) {
+                    writer.println(handleAggregate(command, payload));
+
+                } else if (
+                    "ADD_SHOP".equals(command)    ||
+                    "ADD_ITEM".equals(command)    ||
+                    "REMOVE_ITEM".equals(command) ||
+                    "RESTOCK".equals(command)     ||
+                    "BUY".equals(command)         ||
+                    "RATE".equals(command)
+                ) {
+                    // replicate to all workers
+                    boolean anyOk = false;
+                    for (int i = 0; i < workerHosts.length; i++) {
+                        String resp = talk(workerHosts[i], workerBasePort + i, request);
+                        if ("OK".equals(resp)) anyOk = true;
+                    }
+                    writer.println(anyOk ? "OK" : "ERROR");
+
+                } else {
+                    writer.println("ERROR Unknown command");
+>>>>>>> 9a44961fdf75d9b87841c6c49eba762a657dd748
                 }
-            } catch (IOException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             } finally {
-                try { socket.close(); }
-                catch (IOException ignored) {}
+                try { managerSocket.close(); } catch (IOException ignored) {}
             }
         }
 
+<<<<<<< HEAD
         private void dispatchToWorkers(String command, String payload, String reduceCommand, PrintWriter writer) {
         System.out.println("[DEBUG] Entering method: void");
             for (int i = 0; i < WORKER_HOSTS.length; i++) {
@@ -229,11 +279,56 @@ public class Master {
                  BufferedReader in = new BufferedReader(new InputStreamReader(sock.getInputStream())))
             {
                 out.println(message);
+=======
+        private String handleSearch(String req) {
+            talkReducer("RESET_SEARCH", "");
+            for (int i = 0; i < workerHosts.length; i++) {
+                talk(workerHosts[i], workerBasePort + i, req);
+            }
+            return talkReducer("REDUCE_SEARCH", "");
+        }
+
+        private String handleAggregate(String cmd, String pl) {
+            talkReducer("RESET_AGG", "");
+            String msg = cmd + (pl.isEmpty() ? "" : " " + pl);
+            for (int i = 0; i < workerHosts.length; i++) {
+                talk(workerHosts[i], workerBasePort + i, msg);
+            }
+            return talkReducer("REDUCE_AGG", "");
+        }
+
+        private String talk(String host, int port, String msg) {
+            try (
+              Socket s = new Socket(host, port);
+              PrintWriter out = new PrintWriter(s.getOutputStream(), true);
+              BufferedReader in = new BufferedReader(
+                  new InputStreamReader(s.getInputStream()))
+            ) {
+                out.println(msg);
+>>>>>>> 9a44961fdf75d9b87841c6c49eba762a657dd748
                 return in.readLine();
             } catch (IOException e) {
-                return "";
+                return null;
             }
         }
 
+<<<<<<< HEAD
+=======
+        private String talkReducer(String cmd, String pl) {
+            String full = pl.isEmpty() ? cmd : cmd + " " + pl;
+            try (
+              Socket s = new Socket(reducerHost, reducerPort);
+              PrintWriter out = new PrintWriter(s.getOutputStream(), true);
+              BufferedReader in = new BufferedReader(
+                  new InputStreamReader(s.getInputStream()))
+            ) {
+                out.println(full);
+                return in.readLine();
+            } catch (IOException e) {
+                e.printStackTrace();
+                return null;
+            }
+        }
+>>>>>>> 9a44961fdf75d9b87841c6c49eba762a657dd748
     }
 }
